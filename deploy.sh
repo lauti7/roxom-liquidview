@@ -49,7 +49,7 @@ save_deployed_commit() {
 # Function to clone or update repository
 update_repository() {
     log "Updating repository..."
-    
+
     if [ -d "$REPO_DIR" ]; then
         # Repo exists, fetch and pull
         cd "$REPO_DIR"
@@ -60,45 +60,45 @@ update_repository() {
         # Clone fresh
         git clone "$AUTH_REPO_URL" "$REPO_DIR"
     fi
-    
+
     log "Repository updated successfully"
 }
 
 # Function to build and restart services
 deploy() {
     log "Building and deploying..."
-    
+
     # Check docker-compose.yml exists
     if [ ! -f "$REPO_DIR/tracker/docker-compose.yml" ]; then
         log "Error: docker-compose.yml not found in repository"
         return 1
     fi
-    
+
     # Navigate to tracker directory and rebuild
     cd "$REPO_DIR/tracker"
-    
+
     # Pull latest base images
     log "Pulling base images..."
-    if ! docker-compose pull; then
+    if ! docker compose pull; then
         log "Error: docker-compose pull failed"
         cd ../..
         return 1
     fi
-    
+
     # Build and restart the app service
     log "Building and starting app service..."
-    if ! docker-compose up -d --build "$SERVICE_NAME"; then
+    if ! docker compose up -d --build "$SERVICE_NAME"; then
         log "Error: docker-compose build failed"
         cd ../..
         return 1
     fi
-    
+
     # Also ensure timescaledb is running
     log "Ensuring timescaledb is running..."
-    docker-compose up -d timescaledb
-    
+    docker compose up -d timescaledb
+
     cd ../..
-    
+
     log "Deployment completed successfully"
     return 0
 }
