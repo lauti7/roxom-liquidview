@@ -19,7 +19,7 @@ async fn main() {
         .max_connections(10)
         .connect()
         .await
-        .expect("must be connected ");
+        .unwrap_or_else(|err| panic!("failed to connect to {db_connection_string}: {err}"));
 
     migrate_up(db.pool()).await.expect("failed to migrate up");
 
