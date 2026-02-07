@@ -7,7 +7,7 @@
 set -e
 
 # Configuration
-REPO_DIR="./roxom-liquidview-src"
+REPO_DIR="./roxom-liquidview"
 SERVICE_NAME="app"
 LAST_COMMIT_FILE="/tmp/roxom-liquidview-last-commit"
 LOG_FILE="./deploy.log"
@@ -51,7 +51,7 @@ save_deployed_commit() {
 # Function to clone or update repository
 update_repository() {
     log "Updating repository..."
-    
+
     if [ -d "$REPO_DIR" ]; then
         # Repo exists, fetch and pull
         cd "$REPO_DIR"
@@ -62,34 +62,34 @@ update_repository() {
         # Clone fresh
         git clone "$AUTH_REPO_URL" "$REPO_DIR"
     fi
-    
+
     log "Repository updated successfully"
 }
 
 # Function to build and restart services
 deploy() {
     log "Building and deploying..."
-    
+
     # Check docker-compose.yml exists
     if [ ! -f "$REPO_DIR/tracker/docker-compose.yml" ]; then
         log "Error: docker-compose.yml not found in repository"
         exit 1
     fi
-    
+
     # Navigate to tracker directory and rebuild
     cd "$REPO_DIR/tracker"
-    
+
     # Pull latest base images
     docker-compose pull >> "$LOG_FILE" 2>&1
-    
+
     # Build and restart the app service
     docker-compose up -d --build "$SERVICE_NAME" >> "$LOG_FILE" 2>&1
-    
+
     # Also ensure timescaledb is running
     docker-compose up -d timescaledb >> "$LOG_FILE" 2>&1
-    
+
     cd ../..
-    
+
     log "Deployment completed successfully"
 }
 
