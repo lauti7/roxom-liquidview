@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg17
+    container_name: timescaledb
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=exec_costs
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: roxom-exec-cost
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://postgres:root@timescaledb:5432/exec_costs
+      - HTTP_ADDR=0.0.0.0:8080
+      - RUST_LOG=info
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./migrations:/app/migrations:ro
+    networks:
+      - default
+
+volumes:
+  timescaledb_data:
+    driver: local
