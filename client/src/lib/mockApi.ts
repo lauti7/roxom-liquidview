@@ -7,7 +7,7 @@ export type ExecutionCostResponse = {
   data: ExecutionPoint[]
 }
 
-type FetchParams = {
+export type FetchParams = {
   symbol: string
   from: number
   to: number
