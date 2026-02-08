@@ -7,17 +7,10 @@ use serde_json::Value;
 use std::env;
 
 async fn setup_test_database() -> pg::Database {
-    let test_db_url = env::var("TEST_DATABASE_URL").unwrap_or_else(|_| {
-        eprintln!("WARNING: TEST_DATABASE_URL not set, using default connection string");
-        eprintln!("Set TEST_DATABASE_URL environment variable to run integration tests");
-        eprintln!(
-            "Example: export TEST_DATABASE_URL=postgresql://user:password@localhost:5432/roxom_test"
-        );
-        panic!("TEST_DATABASE_URL environment variable must be set for integration tests");
-    });
+    let test_db_url = env::var("DATABASE_URL")
+        .unwrap_or_else(|_| String::from("postgresql://postgres:root@localhost:5433/exec_costs"));
 
-    // Connect to default postgres database to create test database
-    let admin_conn_str = test_db_url.replace("/roxom_test", "/postgres");
+    let admin_conn_str = test_db_url.replace("/exec_costs", "/postgres");
     let admin_db_opts = pg::DatabaseOptions::new()
         .with_connection_string(&admin_conn_str)
         .max_connections(1);
@@ -27,19 +20,16 @@ async fn setup_test_database() -> pg::Database {
         .await
         .expect("Failed to connect to admin database");
 
-    // Drop and recreate test database
     let pool = admin_db.pool();
-    pg::drop_database_if_exists(pool, "roxom_test")
+    pg::drop_database_if_exists(pool, "exec_costs")
         .await
         .expect("Failed to drop test database");
-    pg::create_database_if_not_exists(pool, "roxom_test")
+    pg::create_database_if_not_exists(pool, "exec_costs")
         .await
         .expect("Failed to create test database");
 
-    // Close admin connection
     admin_db.close().await;
 
-    // Connect to test database and run migrations
     let test_db_opts = pg::DatabaseOptions::new()
         .with_connection_string(&test_db_url)
         .max_connections(5)
@@ -50,7 +40,6 @@ async fn setup_test_database() -> pg::Database {
         .await
         .expect("Failed to connect to test database");
 
-    // Insert test data
     insert_test_data(&test_db).await;
 
     test_db
@@ -61,10 +50,8 @@ async fn insert_test_data(db: &pg::Database) {
         .unwrap()
         .with_timezone(&Utc);
 
-    // Insert test execution events
     let mut events = Vec::new();
 
-    // Create test data for different order values and times
     for hour_offset in 0..24 {
         // 24 hours of data
         for order_value in roxom_exec_cost::ORDERS_VALUES_IN_SATS.iter().take(3) {
@@ -86,7 +73,6 @@ async fn insert_test_data(db: &pg::Database) {
         }
     }
 
-    // Insert events in batches
     let pool = db.pool();
     let symbol = "GOLD-BTC";
 
@@ -122,10 +108,8 @@ async fn insert_test_data(db: &pg::Database) {
 
 #[actix_web::test]
 async fn test_liquidity_endpoint_basic_success() {
-    // Setup test database
     let test_db = setup_test_database().await;
 
-    // Create test app
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(
@@ -135,7 +119,6 @@ async fn test_liquidity_endpoint_basic_success() {
     )
     .await;
 
-    // Create test request
     let from_timestamp = 1704067200; // 2024-01-01 00:00:00 UTC
     let to_timestamp = 1704153600; // 2024-01-02 00:00:00 UTC
     let order_value = roxom_exec_cost::ORDERS_VALUES_IN_SATS[0]; // First order value
@@ -147,24 +130,18 @@ async fn test_liquidity_endpoint_basic_success() {
         ))
         .to_request();
 
-    // Make request
     let resp = test::call_service(&app, req).await;
 
-    // Assert response status
     assert!(resp.status().is_success());
 
-    // Parse response body
     let body: Value = test::read_body_json(resp).await;
 
-    // Verify response structure
     assert!(body.get("data").is_some());
 
     let data = body["data"].as_array().expect("Data should be an array");
 
-    // Should have data points for the time range
     assert!(!data.is_empty(), "Should return liquidity data");
 
-    // Verify structure of each data point
     for point in data {
         assert!(
             point.get("bucketTsUnix").is_some(),
@@ -177,7 +154,6 @@ async fn test_liquidity_endpoint_basic_success() {
             .expect("bucketTsUnix should be a number");
         let avg_bps = point["avgBps"].as_f64().expect("avgBps should be a number");
 
-        // Verify timestamp is within expected range
         assert!(
             bucket_ts >= from_timestamp,
             "Timestamp should be within range"
@@ -187,11 +163,9 @@ async fn test_liquidity_endpoint_basic_success() {
             "Timestamp should be within range"
         );
 
-        // Verify BPS is a reasonable value
         assert!(avg_bps > 0.0, "Average BPS should be positive");
         assert!(avg_bps < 1000.0, "Average BPS should be reasonable");
     }
 
-    // Clean up
     test_db.close().await;
 }

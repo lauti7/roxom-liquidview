@@ -8,7 +8,7 @@ CREATE TABLE execution_events (
     symbol TEXT NOT NULL,
     order_value BIGINT NOT NULL,
     mid_price BIGINT NOT NULL,
-    bps_over_mid_price NUMERIC NOT NULL,
+    bps_over_mid_price DOUBLE PRECISION NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )
 WITH (

@@ -17,3 +17,7 @@ services:
       retries: 5
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
+
+volumes:
+  timescaledb_data:
+    driver: local
