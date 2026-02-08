@@ -12,6 +12,7 @@ tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }
 actix-web = "4.9.0"
+actix-cors = "0.7.1"
 sqlx = { version = "0.8.3", features = [
     "runtime-tokio",
     "runtime-tokio-rustls",
