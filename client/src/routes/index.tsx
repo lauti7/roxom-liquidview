@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ExecutionChart } from '../components/ExecutionChart'
-import { fetchHourlyExecutionCost } from '../lib/mockApi'
+import { fetchHourlyExecutionCost } from '../lib/executionApi'
 
 const SYMBOLS = ['GOLD-BTC', 'US500-BTC']
 
