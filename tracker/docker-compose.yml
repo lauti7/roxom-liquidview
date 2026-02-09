@@ -5,12 +5,11 @@ services:
     image: timescale/timescaledb:latest-pg17
     container_name: timescaledb
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=exec_costs
-      - PGDATA=/var/lib/postgresql/data/pgdata
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
